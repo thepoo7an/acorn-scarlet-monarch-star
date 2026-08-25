@@ -11,7 +11,7 @@ android {
         minSdk = 33
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0-native-pending"
+        versionName = "1.0.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
@@ -23,8 +23,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    // Uncomment after native/build-ffmpeg.sh succeeds:
-    // externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt") } }
+    externalNativeBuild {
+    cmake {
+        path = file("src/main/cpp/CMakeLists.txt")
+    }
 }
 
 dependencies {
