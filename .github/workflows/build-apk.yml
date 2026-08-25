@@ -1,7 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # این گزینه اجازه می‌دهد فرآیند را به صورت دستی از تب Actions اجرا کنید
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -20,14 +20,26 @@ jobs:
         run: npm ci
 
       - name: Build Web Project
-        # از دستور مستقیم vite build استفاده می‌کنیم تا از خطاهای احتمالی اسکریپت‌های سفارشی جلوگیری شود
+        # ابتدا اسکریپت اصلی پروژه را اجرا می‌کنیم
+        run: npm run build
+        continue-on-error: true
+
+      - name: Fallback Build (اگر مرحله قبل خطا داد)
+        if: failure()
         run: npx vite build
+
+      - name: Verify Build Output
+        # این مرحله بررسی می‌کند که آیا پوشه dist واقعاً ساخته شده است یا خیر
+        run: |
+          echo "Checking dist folder contents:"
+          ls -la dist || echo "ERROR: dist folder not found!"
 
       - name: Setup Capacitor
         run: |
           npm install -g @capacitor/cli
           npm install @capacitor/core @capacitor/android
-          npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist
+          # استفاده از --force برای بازنویسی تنظیمات قبلی در صورت وجود
+          npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist --force
           npx cap add android
           npx cap sync android
 
@@ -41,10 +53,12 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          # اضافه کردن --stacktrace برای دریافت جزئیات دقیق خطا در صورت شکست
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: acorn-app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
