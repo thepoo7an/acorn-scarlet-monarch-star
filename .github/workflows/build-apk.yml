@@ -2,61 +2,66 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (Version 22)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Web Project
-        run: npm run build
-        continue-on-error: true
-
-      - name: Fallback Build
-        if: failure()
-        run: npx vite build
-
-      - name: Setup Capacitor
-        run: |
-          echo "--- پاکسازی فایل‌های کانفیگ قدیمی کپاسیتور (در صورت وجود) ---"
-          rm -f capacitor.config.ts capacitor.config.json
-          
-          echo "--- ایجاد فایل کانفیگ کپاسیتور ---"
-          npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist
-          
-          echo "--- در حال حذف پوشه android قدیمی ---"
-          rm -rf android
-          
-          echo "--- افزودن پلتفرم اندروید ---"
-          npx cap add android
-          npx cap sync android
-
-      - name: Setup Java (JDK 17)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Build Android APK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
         run: |
-          cd android
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-36"
+          sdkmanager "build-tools;36.0.0"
+          sdkmanager "cmake;3.31.6"
+          sdkmanager "ndk;27.2.12479018"
+
+      - name: Configure Android NDK
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Make FFmpeg build script executable
+        run: chmod +x android/native/build-ffmpeg.sh
+
+      - name: Build FFmpeg 9.0.1
+        working-directory: android
+        run: ./native/build-ffmpeg.sh
+
+      - name: Install FFmpeg libraries
+        run: |
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          mkdir -p android/app/src/main/jniLibs/x86_64
+          cp android/native/out/arm64-v8a/lib/*.so android/app/src/main/jniLibs/arm64-v8a/
+          cp android/native/out/x86_64/lib/*.so android/app/src/main/jniLibs/x86_64/
+
+      - name: Build APK
+        working-directory: android
+        run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: acorn-app-debug
+          name: ffmpeg-video-compressor-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
