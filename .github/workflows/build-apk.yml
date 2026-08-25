@@ -23,27 +23,27 @@ jobs:
         run: npm run build
         continue-on-error: true
 
-      - name: Fallback Build (اگر مرحله قبل خطا داد)
+      - name: Fallback Build
         if: failure()
         run: npx vite build
 
-      - name: Verify Build Output
-        run: |
-          echo "Checking dist folder contents:"
-          ls -la dist || echo "ERROR: dist folder not found!"
-
       - name: Setup Capacitor
         run: |
+          echo "--- وضعیت پوشه‌ها قبل از حذف ---"
+          ls -la
+          
           npm install -g @capacitor/cli
           npm install @capacitor/core @capacitor/android
           
-          # مقداردهی اولیه با_force برای اطمینان از بازنویسی تنظیمات
           npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist --force
           
-          # حذف پوشه اندروید قدیمی که باعث تداخل می‌شد
+          echo "--- در حال حذف پوشه android قدیمی ---"
           rm -rf android
           
-          # افزودن پلتفرم اندروید به صورت تمیز و جدید
+          echo "--- وضعیت پوشه‌ها بعد از حذف (android نباید اینجا باشد) ---"
+          ls -la
+          
+          echo "--- افزودن پلتفرم اندروید ---"
           npx cap add android
           npx cap sync android
 
