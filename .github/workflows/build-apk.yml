@@ -10,17 +10,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (Version 22)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
 
       - name: Build Web Project
-        # ابتدا اسکریپت اصلی پروژه را اجرا می‌کنیم
         run: npm run build
         continue-on-error: true
 
@@ -29,7 +28,6 @@ jobs:
         run: npx vite build
 
       - name: Verify Build Output
-        # این مرحله بررسی می‌کند که آیا پوشه dist واقعاً ساخته شده است یا خیر
         run: |
           echo "Checking dist folder contents:"
           ls -la dist || echo "ERROR: dist folder not found!"
@@ -38,8 +36,14 @@ jobs:
         run: |
           npm install -g @capacitor/cli
           npm install @capacitor/core @capacitor/android
-          # استفاده از --force برای بازنویسی تنظیمات قبلی در صورت وجود
+          
+          # مقداردهی اولیه با_force برای اطمینان از بازنویسی تنظیمات
           npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist --force
+          
+          # حذف پوشه اندروید قدیمی که باعث تداخل می‌شد
+          rm -rf android
+          
+          # افزودن پلتفرم اندروید به صورت تمیز و جدید
           npx cap add android
           npx cap sync android
 
@@ -53,7 +57,6 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          # اضافه کردن --stacktrace برای دریافت جزئیات دقیق خطا در صورت شکست
           ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
