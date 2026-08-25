@@ -29,19 +29,14 @@ jobs:
 
       - name: Setup Capacitor
         run: |
-          echo "--- وضعیت پوشه‌ها قبل از حذف ---"
-          ls -la
+          echo "--- پاکسازی فایل‌های کانفیگ قدیمی کپاسیتور (در صورت وجود) ---"
+          rm -f capacitor.config.ts capacitor.config.json
           
-          npm install -g @capacitor/cli
-          npm install @capacitor/core @capacitor/android
-          
-          npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist --force
+          echo "--- ایجاد فایل کانفیگ کپاسیتور ---"
+          npx cap init "AcornApp" "com.thepoo7an.acorn" --web-dir=dist
           
           echo "--- در حال حذف پوشه android قدیمی ---"
           rm -rf android
-          
-          echo "--- وضعیت پوشه‌ها بعد از حذف (android نباید اینجا باشد) ---"
-          ls -la
           
           echo "--- افزودن پلتفرم اندروید ---"
           npx cap add android
